@@ -12,7 +12,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
   static const Color background = Color(0xFFFFF8F8);
   static const Color textColor = Color(0xFF604A50);
   static const Color pink = Color(0xFFD88FA5);
-  static const Color orange = Color(0xFFF3A078);
   static const Color mutedText = Color(0xFF9B838B);
 
   final TextEditingController _searchController =
