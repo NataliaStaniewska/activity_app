@@ -17,8 +17,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   static const Color borderColor = Color(0xFFF1E2E6);
 
   // Dane demonstracyjne. Później pobierzemy je z backendu.
-  String _name = 'Użytkownik';
-  String _email = 'uzytkownik@example.com';
+  final String _name = 'Użytkownik';
+  final String _email = 'uzytkownik@example.com';
 
   final List<String> _interestOptions = [
     'Ruch i sport',
