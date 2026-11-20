@@ -1,5 +1,7 @@
-import '../enums/location_type.dart';
+import '../enums/activity_category.dart';
+import '../enums/activity_emotion.dart';
 import '../enums/company_type.dart';
+import '../enums/location_type.dart';
 
 class ActivityEntry {
   // ? = optional
@@ -8,36 +10,36 @@ class ActivityEntry {
   final int? id; //? bo musi obsluzyc tez wpisy nie zapisane w bazie
   final String activityName;
   final DateTime date; //czy datetime czzy moze bez czasu?
-  final Set<String> categories;
+  final Set<ActivityCategory> categories;
   final LocationType locationType; //enum
-  final CompanyType companyType;  //enum
+  final CompanyType companyType; //enum
   final int? moodBefore;
   final int moodAfter;
   final int rating;
-  final Set<String> emotions;
+  final Set<ActivityEmotion> emotions;
   final String? likes;
   final String? dislikes;
   final String? notes;
 
-//konstruktor
+  //konstruktor
   ActivityEntry({
     this.id,
     required this.activityName,
     required this.date,
-    required Set<String> categories,
+    required Set<ActivityCategory> categories,
     required this.locationType,
     required this.companyType,
     this.moodBefore,
     required this.moodAfter,
     required this.rating,
-    required Set<String> emotions,
+    required Set<ActivityEmotion> emotions,
     this.likes,
     this.dislikes,
     this.notes,
-// zabezpieczenie przed modyfikacja listy kategorii i emocji po utworzeniu obiektu
-//Do pola categories przypisz niemodyfikowalną kopię zbioru przekazanego w parametrze categories
-  }): categories = Set.unmodifiable(categories),
-        emotions = Set.unmodifiable(emotions) {
+    // zabezpieczenie przed modyfikacja listy kategorii i emocji po utworzeniu obiektu
+    //Do pola categories przypisz niemodyfikowalną kopię zbioru przekazanego w parametrze categories
+  }) : categories = Set.unmodifiable(categories),
+       emotions = Set.unmodifiable(emotions) {
     // Walidacja
     //czy oceny sa w 1-5
     if (rating < 1 || rating > 5) {
@@ -50,7 +52,6 @@ class ActivityEntry {
       throw ArgumentError('Mood before activity must be between 1 and 5');
     }
     // czy kategorie i emocje nie sa puste
-    // warto moze sprawdzic czy nie sa puste stringi w kategoriach i emocjach
     if (categories.isEmpty) {
       throw ArgumentError('Categories cannot be empty');
     }
@@ -59,16 +60,16 @@ class ActivityEntry {
     }
     //czy nazwa aktywnosci, likes, dislikes i notes nie są za długie
     // to potem do dostosowania na pozniejszym etapie
-    if (activityName.length > 100) {
+    if (activityName.runes.length > 100) {
       throw ArgumentError('Activity name cannot exceed 100 characters');
     }
-    if (likes != null && likes!.length > 200) {
+    if (likes != null && likes!.runes.length > 200) {
       throw ArgumentError('Likes cannot exceed 200 characters');
     }
-    if (dislikes != null && dislikes!.length > 200) {
+    if (dislikes != null && dislikes!.runes.length > 200) {
       throw ArgumentError('Dislikes cannot exceed 200 characters');
     }
-    if (notes != null && notes!.length > 300) {
+    if (notes != null && notes!.runes.length > 300) {
       throw ArgumentError('Notes cannot exceed 300 characters');
     }
     //czy nazwa aktywnosci nie jest pusta
@@ -86,6 +87,20 @@ class ActivityEntry {
     if (id != null && id! <= 0) {
       throw ArgumentError('ID must be a positive integer');
     }
-    // potem bedzie trzeba sprawzic jeszcze czy kategorie i emocje sa w liscie dozwolonych kategorii i emocji
   }
+
+  Map<String, Object?> toCreateJson() => {
+    'activityName': activityName.trim(),
+    'date': date.toUtc().toIso8601String(),
+    'categories': categories.map((value) => value.apiId).toList(),
+    'locationType': locationType.name,
+    'companyType': companyType.name,
+    'moodBefore': moodBefore,
+    'moodAfter': moodAfter,
+    'rating': rating,
+    'emotions': emotions.map((value) => value.apiId).toList(),
+    'likes': likes,
+    'dislikes': dislikes,
+    'notes': notes,
+  };
 }
