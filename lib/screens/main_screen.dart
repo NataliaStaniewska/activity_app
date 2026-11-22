@@ -1,6 +1,7 @@
-
 import 'package:flutter/material.dart';
 
+import '../models/saved_activities.dart';
+import '../services/activities_api.dart';
 import 'history_screen.dart';
 import 'add_activity_screen.dart';
 import 'statistics_screen.dart';
@@ -10,7 +11,16 @@ import 'list_screen.dart';
 import 'settings_screen.dart';
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+  const MainScreen({
+    super.key,
+    this.activitiesApi = const ActivitiesApi(),
+    this.accountEmail,
+    this.onLogout,
+  });
+
+  final ActivitiesApi activitiesApi;
+  final String? accountEmail;
+  final Future<void> Function()? onLogout;
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -26,16 +36,29 @@ class _MainScreenState extends State<MainScreen> {
   static const Color background = Color(0xFFFFF8F5);
   static const Color textColor = Color(0xFF604A50);
 
-  final List<Widget> _screens = [
-    const ListScreen(),
-    const HistoryScreen(),
-    const AddActivityScreen(),
-    const StatisticsScreen(),
-    const RecommendationsScreen(),
-  ];
+  final _savedActivities = SavedActivities();
+  SavedActivity? _activitySuggestion;
 
-  void _openTab(int index) {
+  Widget _screenForTab() => switch (_selectedIndex) {
+    0 => ListScreen(
+      savedActivities: _savedActivities,
+      onLogActivity: (activity) => _openTab(2, suggestion: activity),
+    ),
+    1 => HistoryScreen(api: widget.activitiesApi),
+    2 => AddActivityScreen(
+      api: widget.activitiesApi,
+      suggestion: _activitySuggestion,
+    ),
+    3 => StatisticsScreen(api: widget.activitiesApi),
+    _ => RecommendationsScreen(
+      api: widget.activitiesApi,
+      savedActivities: _savedActivities,
+    ),
+  };
+
+  void _openTab(int index, {SavedActivity? suggestion}) {
     setState(() {
+      _activitySuggestion = suggestion;
       _selectedIndex = index;
       _showHome = false;
       _showSettings = false;
@@ -67,9 +90,7 @@ class _MainScreenState extends State<MainScreen> {
     required String label,
     required int index,
   }) {
-    final selected = !_showHome &&
-        !_showSettings &&
-        _selectedIndex == index;
+    final selected = !_showHome && !_showSettings && _selectedIndex == index;
 
     return Expanded(
       child: InkWell(
@@ -80,24 +101,45 @@ class _MainScreenState extends State<MainScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                icon,
-                size: 23,
-                color: selected ? orange : pink,
-              ),
+              Icon(icon, size: 23, color: selected ? orange : pink),
               const SizedBox(height: 4),
               Text(
                 label,
                 maxLines: 1,
                 style: TextStyle(
                   fontSize: 10,
-                  fontWeight: selected
-                      ? FontWeight.bold
-                      : FontWeight.w500,
+                  fontWeight: selected ? FontWeight.bold : FontWeight.w500,
                   color: selected ? orange : textColor,
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _addActivityButton() {
+    return Expanded(
+      child: Center(
+        child: Tooltip(
+          message: 'Dodaj aktywność',
+          child: InkWell(
+            onTap: () => _openTab(2),
+            customBorder: const CircleBorder(),
+            child: Container(
+              width: 56,
+              height: 56,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: orange,
+              ),
+              child: const Icon(
+                Icons.add_rounded,
+                color: Colors.white,
+                size: 32,
+              ),
+            ),
           ),
         ),
       ),
@@ -115,16 +157,10 @@ class _MainScreenState extends State<MainScreen> {
         centerTitle: true,
         title: Text(
           _title,
-          style: const TextStyle(
-            color: textColor,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(color: textColor, fontWeight: FontWeight.bold),
         ),
         leading: IconButton(
-          icon: const Icon(
-            Icons.home_rounded,
-            color: textColor,
-          ),
+          icon: const Icon(Icons.home_rounded, color: textColor),
           onPressed: () {
             setState(() {
               _showHome = true;
@@ -134,10 +170,7 @@ class _MainScreenState extends State<MainScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(
-              Icons.settings_outlined,
-              color: textColor,
-            ),
+            icon: const Icon(Icons.settings_outlined, color: textColor),
             onPressed: () {
               setState(() {
                 _showSettings = true;
@@ -149,60 +182,33 @@ class _MainScreenState extends State<MainScreen> {
       ),
 
       body: _showSettings
-          ? const SettingsScreen()
+          ? SettingsScreen(
+              api: widget.activitiesApi,
+              accountEmail: widget.accountEmail,
+              onLogout: widget.onLogout,
+            )
           : _showHome
-              ? const HomeScreen()
-              : _screens[_selectedIndex],
-
-      floatingActionButtonLocation:
-          FloatingActionButtonLocation.centerDocked,
-
-      floatingActionButton: Container(
-        width: 66,
-        height: 66,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: orange,
-          boxShadow: [
-            BoxShadow(
-              color: orange.withValues(alpha: 0.3),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: IconButton(
-          onPressed: () => _openTab(2),
-          icon: const Icon(
-            Icons.add_rounded,
-            color: Colors.white,
-            size: 36,
-          ),
-          tooltip: 'Dodaj aktywność',
-        ),
-      ),
+          ? HomeScreen(
+              api: widget.activitiesApi,
+              onOpenHistory: () => _openTab(1),
+            )
+          : _screenForTab(),
 
       bottomNavigationBar: BottomAppBar(
         color: Colors.white,
         elevation: 0,
         height: 78,
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 8,
         padding: const EdgeInsets.symmetric(horizontal: 8),
         child: Row(
           children: [
-            _navButton(
-              icon: Icons.list_alt_rounded,
-              label: 'Lista',
-              index: 0,
-            ),
+            _navButton(icon: Icons.list_alt_rounded, label: 'Lista', index: 0),
             _navButton(
               icon: Icons.history_rounded,
               label: 'Historia',
               index: 1,
             ),
 
-            const SizedBox(width: 72),
+            _addActivityButton(),
 
             _navButton(
               icon: Icons.bar_chart_rounded,
